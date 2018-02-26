@@ -2,6 +2,7 @@ package spy
 
 
 import (
+	goquery "github.com/PuerkitoBio/goquery"
 	iconv "github.com/djimenez/iconv-go"
 	"../base"
 	"log"
