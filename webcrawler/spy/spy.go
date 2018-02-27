@@ -4,61 +4,30 @@ package spy
 import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/djimenez/iconv-go"
-	"../base"
 	"log"
 	"net/http"
 	"fmt"
-	"io/ioutil"
 	"regexp"
+	"strconv"
+	"time"
+	"io/ioutil"
 )
 
-func Spy(url string) string {
-	defer func() {
+/**
+ 1. 设置基本网址
+ 2. 获取页数
+ 3. 根据页数不断获取
+ */
+func Spy(baseUrl string) {
+	/*defer func() {
 		if r := recover(); r != nil {
-			log.Println("[E]", r)
+			log.Println("[E] recover", r)
 		}
-	}()
+	}()*/
 
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("User-Agent", base.GetRandomUserAgent())
-	client := http.DefaultClient
-	res, e := client.Do(req)
-	if e != nil {
-		fmt.Printf("Get request %s failed: %s", url, e)
-		return "request failed"
-	}
-
-	if res.StatusCode == 200 {
-		body := res.Body
-		defer res.Body.Close()
-		// utfBody, _ := iconv.NewReader(body, "gbk2312", "utf-8")
-		bytes, _ := ioutil.ReadAll(body)
-		bodyStr := string(bytes)
-		output, _ := iconv.ConvertString(bodyStr, "gb2312", "utf-8")
-
-		// find movies
-		reader, _ := iconv.NewReader(res.Body, "gb2312", "utf-8")
-		doc, err := goquery.NewDocumentFromReader(reader)
-		if err != nil {
-			fmt.Printf("goquery build document from read occur error: %s", err)
-			return ""
-		}
-		doc.Find("div.co_content8").Find("a.ulink").Each(func (i int, s *goquery.Selection) {
-			val, exists := s.Attr("href")
-			if exists {
-				fmt.Printf("find movie name: %s, href: %s", s.Text(), val)
-			}
-		})
-
-		return output
-	} else {
-		return fmt.Sprintf("Get Request not success, code is %s", url)
-	}
-}
-
-
-func FindMovies(urlStr string) {
-	res, err := http.Get(urlStr)
+	// 组装成第一次的url
+	url := baseUrl + "2" + ".html"
+	res, err := http.Get(url)
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
@@ -68,18 +37,68 @@ func FindMovies(urlStr string) {
 			fmt.Println(err.Error())
 		} else {
 			doc, _ := goquery.NewDocumentFromReader(utfBody)
-			// 下面就可以用doc去获取网页里的结构数据了
-			// 比如
-			divSelection := doc.Find("div.co_content8")
+			/*divSelection := doc.Find("div.co_content8")
 			divSelection.Find("a.ulink").Each(func(i int, s *goquery.Selection) {
-					val, _ := s.Attr("href")
-					fmt.Printf("find link name:%s, href: %s\n", s.Text(), val)
-				})
+				val, _ := s.Attr("href")
+				fmt.Printf("find link name:%s, href: %s\n", s.Text(), val)
+			})*/
+			// get total page
+			page := getPage(doc)
+			fmt.Printf("一共%d页\n", page)
+
+			// find movies
+			for i := 2; i <= page; i++ {
+				log.Printf("开始抓取第%d页", i)
+				FindMovies(baseUrl, i)
+				time.Sleep(time.Second * 2)
+			}
 		}
 	}
 }
 
-func getPage(document goquery.Document) int {
+
+func FindMovies(baseUrl string, page int) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("抓取第%d页失败，将5秒之后重新尝试\n", page)
+			time.Sleep(time.Second * 5)
+			FindMovies(baseUrl, page)
+		}
+	}()
+	// concatenate url and page num
+	urlStr := baseUrl + strconv.Itoa(page) + ".html"
+	log.Printf("抓取的url是: %s", urlStr)
+
+	res, err := http.Get(urlStr)
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		if res.StatusCode == 200 {
+			defer res.Body.Close()
+			utfBody, err := iconv.NewReader(res.Body, "gb2312", "utf-8")
+			if err != nil {
+				fmt.Println(err.Error())
+			} else {
+				doc, e := goquery.NewDocumentFromReader(utfBody)
+				if e != nil {
+					bytes, _ := ioutil.ReadAll(utfBody)
+					log.Printf("返回的内容: %s", string(bytes))
+				}
+				// 下面就可以用doc去获取网页里的结构数据了
+				// 比如
+				divSelection := doc.Find("div.co_content8")
+				divSelection.Find("a.ulink").Each(func(i int, s *goquery.Selection) {
+					val, _ := s.Attr("href")
+					fmt.Printf("find link name:%s, href: %s\n", s.Text(), val)
+				})
+			}
+		} else {
+			log.Printf("请求url: %s失败, statusCode是%d", urlStr, res.StatusCode)
+		}
+	}
+}
+
+func getPage(document *goquery.Document) int {
 	totalPage := -1
 	regexp.MustCompile("\\(\\_\\)\\(\\d{3,}\\)\\(\\.html\\)")
 	document.Find("a").Each(func(i int, s *goquery.Selection) {
@@ -88,7 +107,7 @@ func getPage(document goquery.Document) int {
 			if !exists {
 				return
 			}
-			fmt.Print(val)
+			totalPage = ParsePage(val)
 		}
 	})
 	return totalPage
@@ -97,8 +116,13 @@ func getPage(document goquery.Document) int {
 func ParsePage(pageStr string) int {
 	compile := regexp.MustCompile("(_)(\\d{3,})(.html)")
 	submatch := compile.FindStringSubmatch(pageStr)
-	for i, v := range submatch {
-		fmt.Printf("index %d find %s\n", i, v)
+	if len(submatch) < 3 {
+		return -1
 	}
-	return -1
+	page, e := strconv.Atoi(submatch[2])
+	if e != nil {
+		log.Fatal("获取分页的时候发生错误", e)
+	}
+
+	return page
 }
