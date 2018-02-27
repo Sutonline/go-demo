@@ -2,10 +2,12 @@ package main
 
 import (
 	"./spy"
-	"io/ioutil"
+	"fmt"
 )
 
 func main() {
-	s := spy.Spy("http://www.dytt8.net")
-	ioutil.WriteFile("index.txt", []byte(s), 0644)
+	//spy.ExampleScrape()
+	//spy.FindMovies("http://www.ygdy8.com/html/gndy/dyzz/list_23_2.html")
+	page := spy.ParsePage("list_23_171.html")
+	fmt.Print(page)
 }
