@@ -3,6 +3,12 @@ package base
 import (
 	"math/rand"
 	"time"
+	"io"
+	"io/ioutil"
+	"log"
+	"os/exec"
+	"strings"
+	bytes2 "bytes"
 )
 
 var userAgent = [...]string{"Mozilla/5.0 (compatible, MSIE 10.0, Windows NT, DigExt)",
@@ -25,4 +31,19 @@ var random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func GetRandomUserAgent() string {
 	return userAgent[random.Intn(len(userAgent))]
+}
+
+func ConvertReader(reader io.Reader, fromCharset string, toCharset string) string {
+		bytes, e := ioutil.ReadAll(reader)
+		if e != nil {
+		log.Fatal("reading bytes", e)
+	}
+		//writeFile(bytes)
+		command := exec.Command("iconv", "-f", fromCharset, "-t", toCharset, "-c")
+		command.Stdin = strings.NewReader(string(bytes))
+		var out bytes2.Buffer
+		command.Stdout = &out
+		command.Run()
+
+		return string(out.Bytes())
 }
