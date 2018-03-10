@@ -154,17 +154,20 @@ func convertReader(reader io.Reader, fromCharset string, toCharset string) strin
 	if e != nil {
 		log.Fatal("reading bytes", e)
 	}
+	//writeFile(bytes)
 	command := exec.Command("iconv", "-f", "gb2312", "-t", "utf-8" ,"-c")
 	command.Stdin = strings.NewReader(string(bytes))
 	var out bytes2.Buffer
 	command.Stdout = &out
-	err := command.Run()
-	if err != nil {
-		log.Fatal("getOutput error", err)
-	}
+	command.Run()
 
 	return string(out.Bytes())
 }
+
+func writeFile(bytes []byte) {
+	ioutil.WriteFile("analyze.txt", bytes, 0644);
+}
+
 
 
 func ParsePage(pageStr string) int {
