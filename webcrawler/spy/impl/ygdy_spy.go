@@ -1,15 +1,17 @@
-package spy
+package spyimpl
 
 import (
 	"strconv"
 	"net/http"
-	"io"
 	"compress/gzip"
 	"../../base"
 	"github.com/PuerkitoBio/goquery"
 	"regexp"
 	"log"
 	"strings"
+	"time"
+	"runtime/debug"
+	"fmt"
 )
 
 type Ygdy struct {
@@ -23,7 +25,7 @@ func (ygdy Ygdy) GetRequestUrl(page int) string {
 	return ygdy.baseUrl + strconv.Itoa(page) + ".html"
 }
 
-func (ygdy Ygdy) BuildRequest(url string) *http.Request {
+func (ygdy Ygdy) buildRequest(url string) *http.Request {
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.167 Safari/537.36")
 	req.Header.Set("Connection", "keep-alive")
@@ -37,16 +39,58 @@ func (ygdy Ygdy) BuildRequest(url string) *http.Request {
 	return req
 }
 
-func (ygdy Ygdy) GetResponse(reader io.Reader) string {
-	gzipReader, _ := gzip.NewReader(reader)
-	ygdy.responseStr = base.ConvertReader(gzipReader, "gb2312", "utf-8")
-	return ygdy.responseStr
+func (ygdy Ygdy) GetResponse(url string) string {
+	res, err := ygdy.client.Do(ygdy.buildRequest(url))
+
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		if res.StatusCode == 200 {
+			gzipReader, _ := gzip.NewReader(res.Body)
+			ygdy.responseStr = base.ConvertReader(gzipReader, "gb2312", "utf-8")
+			return ygdy.responseStr
+		}
+	}
+
+	return ""
 }
 
 func (ygdy Ygdy) GetTotalPage() int {
-	document, _ := goquery.NewDocumentFromReader(strings.NewReader(ygdy.responseStr))
+	resStr := ygdy.GetResponse(ygdy.pageUrl)
+	document, _ := goquery.NewDocumentFromReader(strings.NewReader(resStr))
 	return getPage(document)
 }
+
+func (ygdy Ygdy) FindCurrentPageMovies(url string) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Println("[E] recover", r)
+			log.Printf("抓取%s失败，将5秒之后重新尝试\n", url)
+			time.Sleep(time.Second * 5)
+			ygdy.FindCurrentPageMovies(url)
+		}
+	}()
+
+	log.Printf("抓取的url是: %s", url)
+
+	res := ygdy.GetResponse(url)
+
+	if res == "" {
+		log.Printf("get [%s] response is nil\n", url)
+	} else {
+			doc, e := goquery.NewDocumentFromReader(strings.NewReader(res))
+			if e != nil {
+				debug.PrintStack()
+				log.Fatal("goquery build document ", e)
+			}
+
+			divSelection := doc.Find("div.co_content8")
+			divSelection.Find("a.ulink").Each(func(i int, s *goquery.Selection) {
+				val, _ := s.Attr("href")
+				fmt.Printf("find link name:%s, href: %s\n", s.Text(), val)
+			})
+		}
+	}
 
 func getPage(document *goquery.Document) int {
 	totalPage := -1

@@ -1,6 +1,5 @@
 package spy
 
-
 import (
 	"github.com/PuerkitoBio/goquery"
 	"log"
@@ -18,6 +17,7 @@ import (
 	"io"
 	"compress/flate"
 	"hash"
+	"./impl"
 )
 
 type Reader struct {
@@ -30,7 +30,6 @@ type Reader struct {
 	err          error
 	multistream  bool
 }
-
 
 /**
  1. 设置基本网址
@@ -46,6 +45,14 @@ func Spy(baseUrl string) {
 
 	// 组装成第一次的url
 	client := &http.Client{}
+	var spy_interface Spy_interface
+	ygdy := spyimpl.Ygdy{
+		"http://www.ygdy8.com/html/gndy/dyzz/list_23_",
+		"http://www.ygdy8.com/html/gndy/dyzz/list_23_2.html",
+		"",
+		client}
+	spy_interface = ygdy
+	spy_interface.GetTotalPage()
 	url := baseUrl + "1" + ".html"
 
 	res := getResponse(client, url)
@@ -68,7 +75,6 @@ func Spy(baseUrl string) {
 		}
 	}
 }
-
 
 func FindMovies(client *http.Client, baseUrl string, page int) {
 	defer func() {
@@ -115,7 +121,7 @@ func getResponse(client *http.Client, urlStr string) *http.Response {
 	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8,ja;q=0.7")
 	req.Header.Set("Host", "www.ygdy8.com")
 	req.Header.Set("Pragma", "no-cache")
-	req.Header.Set("Upgrade-Insecure-Requests","1")
+	req.Header.Set("Upgrade-Insecure-Requests", "1")
 	req.Header.Set("Cookie", "UM_distinctid=161dc30cac0568-000fb5f0ab92ee-3e3d5100-1fa400-161dc30cac1442; CNZZDATA5783118=cnzz_eid%3D1361120091-1519813985-http%253A%252F%252Fwww.ygdy8.com%252F%26ntime%3D1519813985")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
 	req.Header.Set("Accept-Encoding", "gzip, deflate")
@@ -133,7 +139,6 @@ func getResponse(client *http.Client, urlStr string) *http.Response {
 	return nil
 }
 
-
 func getPage(document *goquery.Document) int {
 	totalPage := -1
 	document.Find("a").Each(func(i int, s *goquery.Selection) {
@@ -148,14 +153,13 @@ func getPage(document *goquery.Document) int {
 	return totalPage
 }
 
-
 func convertReader(reader io.Reader, fromCharset string, toCharset string) string {
 	bytes, e := ioutil.ReadAll(reader)
 	if e != nil {
 		log.Fatal("reading bytes", e)
 	}
 	//writeFile(bytes)
-	command := exec.Command("iconv", "-f", "gb2312", "-t", "utf-8" ,"-c")
+	command := exec.Command("iconv", "-f", "gb2312", "-t", "utf-8", "-c")
 	command.Stdin = strings.NewReader(string(bytes))
 	var out bytes2.Buffer
 	command.Stdout = &out
@@ -167,8 +171,6 @@ func convertReader(reader io.Reader, fromCharset string, toCharset string) strin
 func writeFile(bytes []byte) {
 	ioutil.WriteFile("analyze.txt", bytes, 0644);
 }
-
-
 
 func ParsePage(pageStr string) int {
 	compile := regexp.MustCompile("(_)(\\d{3,})(.html)")
