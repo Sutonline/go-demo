@@ -6,7 +6,7 @@ import (
 
 func main() {
 	//spy.ExampleScrape()
-	spy.Spy("http://www.ygdy8.com/html/gndy/dyzz/list_23_")
+	spy.Spy()
 	//client := &http.Client{}
 	//spy.FindMovies(client, "http://www.ygdy8.com/html/gndy/dyzz/list_23_", 10)
 	//page := spy.ParsePage("list_23_171.html")

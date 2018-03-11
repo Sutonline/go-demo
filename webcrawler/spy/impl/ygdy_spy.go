@@ -15,14 +15,14 @@ import (
 )
 
 type Ygdy struct {
-	baseUrl string
-	pageUrl string
-	responseStr string
-	client *http.Client
+	BaseUrl string
+	PageUrl string
+	ResponseStr string
+	Client *http.Client
 }
 
 func (ygdy Ygdy) GetRequestUrl(page int) string {
-	return ygdy.baseUrl + strconv.Itoa(page) + ".html"
+	return ygdy.BaseUrl + strconv.Itoa(page) + ".html"
 }
 
 func (ygdy Ygdy) buildRequest(url string) *http.Request {
@@ -40,15 +40,15 @@ func (ygdy Ygdy) buildRequest(url string) *http.Request {
 }
 
 func (ygdy Ygdy) GetResponse(url string) string {
-	res, err := ygdy.client.Do(ygdy.buildRequest(url))
+	res, err := ygdy.Client.Do(ygdy.buildRequest(url))
 
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
 		if res.StatusCode == 200 {
 			gzipReader, _ := gzip.NewReader(res.Body)
-			ygdy.responseStr = base.ConvertReader(gzipReader, "gb2312", "utf-8")
-			return ygdy.responseStr
+			ygdy.ResponseStr = base.ConvertReader(gzipReader, "gb2312", "utf-8")
+			return ygdy.ResponseStr
 		}
 	}
 
@@ -56,7 +56,7 @@ func (ygdy Ygdy) GetResponse(url string) string {
 }
 
 func (ygdy Ygdy) GetTotalPage() int {
-	resStr := ygdy.GetResponse(ygdy.pageUrl)
+	resStr := ygdy.GetResponse(ygdy.PageUrl)
 	document, _ := goquery.NewDocumentFromReader(strings.NewReader(resStr))
 	return getPage(document)
 }

@@ -1,5 +1,10 @@
 package spy
 
+/**
+  1. 获取总页数
+  2. 根据总页数生成各个页的url
+  3. 获取当前页的电影
+ */
 type Spy_interface interface {
 
 	// 根据baseUrl获取进行请求的url
@@ -9,7 +14,7 @@ type Spy_interface interface {
 	//BuildRequest(url string) *http.Request
 
 	// 进行转换字符集等操作获取正确的response
-	GetResponse(url string) string
+	// GetResponse(url string) string
 
 	// 获取总页数
 	GetTotalPage() int
