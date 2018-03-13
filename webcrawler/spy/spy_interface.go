@@ -5,7 +5,7 @@ package spy
   2. 根据总页数生成各个页的url
   3. 获取当前页的电影
  */
-type Spy_interface interface {
+type SpyInterface interface {
 
 	// 根据baseUrl获取进行请求的url
 	GetRequestUrl(page int) string

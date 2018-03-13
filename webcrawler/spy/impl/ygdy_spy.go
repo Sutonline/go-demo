@@ -39,7 +39,7 @@ func (ygdy Ygdy) buildRequest(url string) *http.Request {
 	return req
 }
 
-func (ygdy Ygdy) GetResponse(url string) string {
+func (ygdy Ygdy) getResponse(url string) string {
 	res, err := ygdy.Client.Do(ygdy.buildRequest(url))
 
 	if err != nil {
@@ -56,7 +56,7 @@ func (ygdy Ygdy) GetResponse(url string) string {
 }
 
 func (ygdy Ygdy) GetTotalPage() int {
-	resStr := ygdy.GetResponse(ygdy.PageUrl)
+	resStr := ygdy.getResponse(ygdy.PageUrl)
 	document, _ := goquery.NewDocumentFromReader(strings.NewReader(resStr))
 	return getPage(document)
 }
@@ -73,7 +73,7 @@ func (ygdy Ygdy) FindCurrentPageMovies(url string) {
 
 	log.Printf("抓取的url是: %s", url)
 
-	res := ygdy.GetResponse(url)
+	res := ygdy.getResponse(url)
 
 	if res == "" {
 		log.Printf("get [%s] response is nil\n", url)
